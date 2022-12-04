@@ -1,0 +1,12 @@
+services:
+    phmap:
+        container_name: phmap
+        image: phmap/phmap
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+            - ./docker/php/local.ini:/usr/local/etc/conf.d/local.ini
