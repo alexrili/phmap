@@ -72,6 +72,10 @@ class PayloadMap
             return $this->getConcatValues($inputMap);
         }
 
+        if ($this->isOneOrAnotherValue($inputMap->from)) {
+            return $this->getOneOrAnotherValue($inputMap);
+        }
+
         if ($this->isFixedValue($inputMap->from)) {
             return $this->handleFixedValue($inputMap);
         }
@@ -177,6 +181,37 @@ class PayloadMap
         $outputMap = [
             ...(array)$inputMap,
             'value' => implode($concatValues),
+        ];
+        return Response::collection($outputMap, OutputMap::class);
+    }
+
+    /**
+     * @param mixed $path
+     * @return bool
+     */
+    protected function isOneOrAnotherValue(mixed $path): bool
+    {
+        return str_contains($path, OR_SYMBOL);
+    }
+
+    protected function getOneOrAnotherValue(InputMap $inputMap): OutputMap
+    {
+        $oneOrAnotherPath = explode(OR_SYMBOL, $inputMap->from);
+        $value = null;
+        foreach ($oneOrAnotherPath as $item) {
+            $newInputMap = new InputMap([
+                ...(array)$inputMap,
+                'from' => $item,
+            ]);
+            $result = $this->getValue($newInputMap);
+            if ($result->value) {
+                $value = $result->value;
+                break;
+            }
+        }
+        $outputMap = [
+            ...(array)$inputMap,
+            'value' => $value,
         ];
         return Response::collection($outputMap, OutputMap::class);
     }
