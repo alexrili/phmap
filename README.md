@@ -134,6 +134,35 @@ array:2 [
 ]
 ```
 
+### One Or Antoher value
+> you can map two(or more) direferente paths to bring a value, 
+> then the phmap will go through all the paths until it finds a value.
+> To make one or another value, you can use `||` symbol  
+```php
+[
+    "from" =>"a||a1",
+    "to" => "b" // if finds value in [a], brings [a], if not try to brings [b]
+]
+```
+
+
+### Nullable values
+> you may need to map some properties that has a null value, for that 
+> you just need to pass a string flag called `nullable` with one of this 
+> two values [`"true"`|`"false"`], if trues, means you want to bring this 
+> property to you new structure even if their value is null.
+> 
+> Default value is `"false"`
+```php
+[
+    "from" =>"a",
+    "to" => "b" 
+    "nullable" => "true" 
+    // if [a] don't have value
+    // the results will be ["b"=>null] 
+]
+```
+
 ## Advanced usage
 
 ```php
