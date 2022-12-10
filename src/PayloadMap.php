@@ -114,13 +114,13 @@ class PayloadMap
             'from' => $this->getAbsolutePath($inputMap->from, $indexFrom),
             'to' => $this->getAbsolutePath($inputMap->to, $indexTo),
         ]);
-        $result = $this->getValue($newInputMap);
 
-        if ($this->mustKeepingWalkingThrough($result->value, $newInputMap->from)) {
-            $data[] = [
-                ...(array)$newInputMap,
-                'value' => $result->value,
-            ];
+        $result = $this->getValue($newInputMap);
+        $data[] = [
+            ...(array)$newInputMap,
+            'value' => $result->value,
+        ];
+        if ($this->mustKeepingWalkingThrough($newInputMap->from, $indexFrom)) {
             return $this->getMultiValues($inputMap, $data, ++$indexTo, ++$indexFrom);
         }
 
@@ -137,20 +137,26 @@ class PayloadMap
         return Str::replace(MULTI_LEVEL_SYMBOL, $index, $relativePath);
     }
 
+
     /**
-     * @param mixed $value
-     * @param string $from
+     * @param string $path
+     * @param $index
      * @return bool
      */
-    protected function mustKeepingWalkingThrough(mixed $value, string $from): bool
+    protected function mustKeepingWalkingThrough(string $path, $index): bool
     {
-        if ($this->isConcatenatedValue($from)) {
-            $path = explode(CONCAT_SYMBOL, $from);
-            $data = Arr::get($this->inputData, $path[0]);
-            return (bool)$data;
+        if ($this->isConcatenatedValue($path)) {
+            $path = Arr::first(explode(CONCAT_SYMBOL, $path));
         }
 
-        return (bool)$value;
+        if ($this->isOneOrAnotherValue($path)) {
+            $path = Arr::first(explode(OR_SYMBOL, $path));
+        }
+
+        preg_match(MULTI_LEVEL_PATERN_VALUES, $path, $metches);
+        $multilevelSize = count(Arr::get($this->inputData, $metches[1] ?? null) ?? []);
+
+        return $index + 1 < $multilevelSize;
     }
 
     /**
@@ -160,6 +166,15 @@ class PayloadMap
     protected function isConcatenatedValue(mixed $path): bool
     {
         return str_contains($path, CONCAT_SYMBOL);
+    }
+
+    /**
+     * @param mixed $path
+     * @return bool
+     */
+    protected function isOneOrAnotherValue(mixed $path): bool
+    {
+        return str_contains($path, OR_SYMBOL);
     }
 
     /**
@@ -178,6 +193,7 @@ class PayloadMap
             $result = $this->getValue($newInputMap);
             $concatValues[] = $result->value;
         }
+
         $outputMap = [
             ...(array)$inputMap,
             'value' => implode($concatValues),
@@ -186,14 +202,9 @@ class PayloadMap
     }
 
     /**
-     * @param mixed $path
-     * @return bool
+     * @param \Phmap\Phmap\Contracts\InputMap $inputMap
+     * @return \Phmap\Phmap\Contracts\OutputMap
      */
-    protected function isOneOrAnotherValue(mixed $path): bool
-    {
-        return str_contains($path, OR_SYMBOL);
-    }
-
     protected function getOneOrAnotherValue(InputMap $inputMap): OutputMap
     {
         $oneOrAnotherPath = explode(OR_SYMBOL, $inputMap->from);
