@@ -205,4 +205,92 @@ class PayloadMapTest extends TestCase
         $response = payload_map($inputData, $map);
         $this->assertCount(2, $response['b']);
     }
+
+    /** @test */
+    public function should_get_first_value_when_first_attributes_has_value(): void
+    {
+        $inputData = [
+            'a' => [
+                'attribute1' => 'first value',
+                'attribute2' => 'second value',
+            ]
+        ];
+
+        $map = [
+            [
+                'from' => 'a.attribute1||a.attribute2',
+                'to' => 'b.attribute',
+            ]
+        ];
+        $response = payload_map($inputData, $map);
+        $this->assertEquals($inputData['a']['attribute1'], $response['b']['attribute']);
+    }
+
+    /** @test */
+    public function should_try_to_get_the_value_by_stepping_sequentially_within_the_path(): void
+    {
+        $inputData = [
+            'a' => [
+                'attribute1' => null,
+                'attribute2' => null,
+                'attribute3' => 'value',
+            ]
+        ];
+
+        $map = [
+            [
+                'from' => 'a.attribute1||a.attribute2||a.nonexistattribute||a.attribute3',
+                'to' => 'b.attribute',
+            ]
+        ];
+        $response = payload_map($inputData, $map);
+        $this->assertEquals($inputData['a']['attribute3'], $response['b']['attribute']);
+    }
+
+    /** @test */
+    public function should_try_to_get_the_fixed_value_when_not_finds_value_on_input_data(): void
+    {
+        $inputData = [
+
+        ];
+
+        $map = [
+            [
+                'from' => 'a.noValue||__(fixed value)__',
+                'to' => 'b.attribute',
+            ]
+        ];
+        $response = payload_map($inputData, $map);
+        $this->assertEquals('fixed value', $response['b']['attribute']);
+    }
+
+    /** @test */
+    public function should_try_to_get_the_fixed_value_when_not_finds_value_on_multivalue_path(): void
+    {
+        $inputData = [
+            'a'=>[
+                ['attribute'=>null],
+                ['attribute'=>null],
+                ['attribute'=>'value a.1'],
+            ],
+            'a2'=>[
+                ['attribute'=>'value a2.1'],
+                ['attribute'=> null],
+                ['attribute'=>'a2test'],
+            ],
+            'a1'=> 'value a1.1'
+        ];
+
+        $map = [
+            [
+                'from' => 'a.*.attribute||a2.*.attribute',
+                'to' => 'b.*.newAttribute',
+                'nullable'=>'true'
+            ]
+        ];
+        $response = payload_map($inputData, $map);
+        $this->assertCount(3, $response['b']);
+        $this->assertEquals($inputData['a2'][0]['attribute'], $response['b'][0]['newAttribute']);
+        $this->assertEquals($inputData['a2'][1]['attribute'], $response['b'][1]['newAttribute']);
+    }
 }
