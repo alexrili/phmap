@@ -1,19 +1,16 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Phmap\Phmap\Contracts;
 
 use Hell\Vephar\Resource;
 
 /**
  * @author '@alexrili'
- * @class Map
- * @package App\Helpers\Memed\Contracts
+ * @class InputMap
+ * @package Phmap\Phmap\Contracts
  */
-class Map extends Resource
+class InputMap extends Resource
 {
-
     /**
      * @var string
      */
@@ -22,11 +19,9 @@ class Map extends Resource
      * @var string
      */
     public string $to = '';
+
     /**
-     * @var mixed|null
+     * @var string
      */
-    public mixed $value = null;
-
     public string $nullable = 'false';
-
 }
