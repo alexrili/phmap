@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Phmap\Phmap;
 
-use Phmap\Phmap\Contracts\Map;
-use Phmap\Phmap\Contracts\MapCollection;
 use Hell\Vephar\Collection;
 use Hell\Vephar\Resource;
 use Hell\Vephar\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Phmap\Phmap\Contracts\InputMap;
+use Phmap\Phmap\Contracts\OutputMap;
 
 /**
  * @author '@alexrili'
@@ -19,7 +19,6 @@ use Illuminate\Support\Str;
  */
 class PayloadMap
 {
-
     /**
      * @var array
      */
@@ -29,9 +28,9 @@ class PayloadMap
      */
     protected array $inputData;
     /**
-     * @var \App\Helpers\Memed\Contracts\MapCollection|mixed
+     * @var \Hell\Vephar\Collection|\Phmap\Phmap\Contracts\InputMap|mixed
      */
-    protected MapCollection|Map $map;
+    protected Collection|InputMap $map;
 
     /**
      * @param array $inputData
@@ -39,75 +38,89 @@ class PayloadMap
      */
     public function __construct(array $inputData, array $map)
     {
-        $this->map = Response::collection($map, Map::class, MapCollection::class);
+        $this->map = Response::collection($map, InputMap::class);
         $this->inputData = $inputData;
     }
-
 
     /**
      * @return void
      */
     public function doMapping(): void
     {
-        if ($this->map instanceof Map) {
-            $values = $this->getValue($this->map->from, $this->map->to);
-            $this->setOutputData($values);
+        if ($this->map instanceof InputMap) {
+            $values = $this->getValue($this->map);
+            $this->handleWithValues($values);
             return;
         }
-        $this->map->each(function (Map $map) {
-            $values = $this->getValue($map->from, $map->to);
-            $this->setOutputData($values);
+        $this->map->each(function (InputMap $map) {
+            $values = $this->getValue($map);
+            $this->handleWithValues($values);
         });
     }
 
     /**
-     * @param string $from
-     * @param string $to
-     * @return \App\Helpers\Memed\Contracts\Map|\Hell\Vephar\Collection
+     * @param $inputMap
+     * @return \Phmap\Phmap\Contracts\OutputMap|\Hell\Vephar\Collection
      */
-    protected function getValue(string $from, string $to): Map|Collection
+    protected function getValue($inputMap): OutputMap|Collection
     {
-        if ($this->isMultiLevel($from)) {
-            return $this->getMultiValues($from, $to);
+        if ($this->isMultiLevel($inputMap->from)) {
+            return $this->getMultiValues($inputMap);
         }
 
-        if ($this->isConcatenatedValue($from)) {
-            return $this->getConcatValues($from, $to);
+        if ($this->isConcatenatedValue($inputMap->from)) {
+            return $this->getConcatValues($inputMap);
         }
 
-        if ($this->isFixedValue($from)) {
-            return $this->handleFixedValue($from, $to);
+        if ($this->isFixedValue($inputMap->from)) {
+            return $this->handleFixedValue($inputMap);
         }
 
-        $value = Arr::get($this->inputData, $from);
-        return Response::collection(compact('from', 'to', 'value'), Map::class);
+        $data = [
+            ...(array)$inputMap,
+            'value' => Arr::get($this->inputData, $inputMap->from),
+        ];
+        return Response::collection($data, OutputMap::class);
     }
 
     /**
-     * @param string $from
-     * @param string $to
+     * @param mixed $path
+     * @return bool
+     */
+    protected function isMultiLevel(mixed $path): bool
+    {
+        return (bool)preg_match(MULTI_LEVEL_PATERN, $path);
+    }
+
+    /**
+     * @param \Phmap\Phmap\Contracts\InputMap $inputMap
      * @param array $data
      * @param int $indexFrom
      * @param int $indexTo
-     * @return \App\Helpers\Memed\Contracts\Map|\Hell\Vephar\Collection
+     * @return \Phmap\Phmap\Contracts\OutputMap|\Hell\Vephar\Collection
      */
     protected function getMultiValues(
-        string $from,
-        string $to,
+        InputMap $inputMap,
         array $data = [],
         int $indexFrom = 0,
         int $indexTo = 0
-    ): Map|Collection {
-        $fromAbsolutePath = $this->getAbsolutePath($from, $indexFrom);
-        $toAbsolutePath = $this->getAbsolutePath($to, $indexTo);
-        $result = $this->getValue($fromAbsolutePath, $toAbsolutePath);
+    ): OutputMap|Collection {
+        $newInputMap = new InputMap([
+            ...(array)$inputMap,
+            'from' => $this->getAbsolutePath($inputMap->from, $indexFrom),
+            'to' => $this->getAbsolutePath($inputMap->to, $indexTo),
+        ]);
+        $result = $this->getValue($newInputMap);
 
-        if ($this->mustKeepingWalkingThrough($result->value, $fromAbsolutePath)) {
-            $data[] = ['from' => $fromAbsolutePath, 'to' => $toAbsolutePath, 'value' => $result->value];
-            return $this->getMultiValues($from, $to, $data, ++$indexTo, ++$indexFrom);
+        if ($this->mustKeepingWalkingThrough($result->value, $newInputMap->from)) {
+            $data[] = [
+                ...(array)$newInputMap,
+                'value' => $result->value,
+            ];
+            return $this->getMultiValues($inputMap, $data, ++$indexTo, ++$indexFrom);
         }
 
-        return Response::collection($data, Map::class);
+        return Response::collection($data, OutputMap::class);
     }
 
     /**
@@ -119,38 +132,6 @@ class PayloadMap
     {
         return Str::replace(MULTI_LEVEL_SYMBOL, $index, $relativePath);
     }
-
-
-    /**
-     * @param string $from
-     * @param string $to
-     * @return \App\Helpers\Memed\Contracts\Map
-     */
-    protected function handleFixedValue(string $from, string $to): Map
-    {
-        preg_match(FIXED_VALUE_PATERN, $from, $matches);
-        $value = $matches['fixedValue'] ?? null;
-        return Response::collection(compact('from', 'to', 'value'), Map::class);
-    }
-
-
-    /**
-     * @param string $from
-     * @param string $to
-     * @return \App\Helpers\Memed\Contracts\Map
-     */
-    protected function getConcatValues(string $from, string $to): Map
-    {
-        $concatPath = explode(CONCAT_SYMBOL, $from);
-        $data = [];
-        foreach ($concatPath as $concatItem) {
-            $result = $this->getValue($concatItem, $to);
-            $data[] = $result->value;
-        }
-
-        return Response::collection(['from' => $from, 'to' => $to, 'value' => implode($data)], Map::class);
-    }
-
 
     /**
      * @param mixed $value
@@ -169,6 +150,38 @@ class PayloadMap
     }
 
     /**
+     * @param mixed $path
+     * @return bool
+     */
+    protected function isConcatenatedValue(mixed $path): bool
+    {
+        return str_contains($path, CONCAT_SYMBOL);
+    }
+
+    /**
+     * @param \Phmap\Phmap\Contracts\InputMap $inputMap
+     * @return \Phmap\Phmap\Contracts\OutputMap
+     */
+    protected function getConcatValues(InputMap $inputMap): OutputMap
+    {
+        $concatPath = explode(CONCAT_SYMBOL, $inputMap->from);
+        $concatValues = [];
+        foreach ($concatPath as $concatItem) {
+            $newInputMap = new InputMap([
+                ...(array)$inputMap,
+                'from' => $concatItem,
+            ]);
+            $result = $this->getValue($newInputMap);
+            $concatValues[] = $result->value;
+        }
+        $outputMap = [
+            ...(array)$inputMap,
+            'value' => implode($concatValues),
+        ];
+        return Response::collection($outputMap, OutputMap::class);
+    }
+
+    /**
      * @param string $path
      * @return bool
      */
@@ -179,38 +192,48 @@ class PayloadMap
 
 
     /**
-     * @param mixed $path
-     * @return bool
+     * @param \Phmap\Phmap\Contracts\InputMap $inputMap
+     * @return \Phmap\Phmap\Contracts\OutputMap
      */
-    protected function isMultiLevel(mixed $path): bool
+    protected function handleFixedValue(InputMap $inputMap): OutputMap
     {
-        return (bool)preg_match(MULTI_LEVEL_PATERN, $path);
+        preg_match(FIXED_VALUE_PATERN, $inputMap->from, $matches);
+        $outputMap = [
+            ...(array)$inputMap,
+            'value' => $matches['fixedValue'] ?? null,
+        ];
+        return Response::collection($outputMap, OutputMap::class);
     }
 
     /**
-     * @param mixed $path
-     * @return bool
-     */
-    protected function isConcatenatedValue(mixed $path): bool
-    {
-        return str_contains($path, CONCAT_SYMBOL);
-    }
-
-    /**
-     * @param \Hell\Vephar\Collection|\App\Helpers\Memed\Contracts\Map $map
+     * @param \Hell\Vephar\Collection|\Phmap\Phmap\Contracts\OutputMap $outputMap
      * @return void
      */
-    protected function setOutputData(Collection|Map $map): void
+    protected function handleWithValues(Collection|OutputMap $outputMap): void
     {
-        if ($map instanceof Map) {
-            $this->outputData = data_fill($this->outputData, $map->to, $map->value);
+        if ($outputMap instanceof OutputMap) {
+            $this->setOutputData($outputMap->to, $outputMap->value, $outputMap->nullable);
             return;
         }
 
-        $map->each(function (Map $item) {
-            $value = $item->value instanceof Resource ? $item->value->toArray() : $item->value;
-            $this->outputData = data_fill($this->outputData, $item->to, $value);
+        $outputMap->each(function (OutputMap $map) {
+            $value = $map->value instanceof Resource ? (array)$map->value : $map->value;
+            $this->setOutputData($map->to, $value, $map->nullable);
         });
     }
+
+    /**
+     * @param string $to
+     * @param mixed $value
+     * @param mixed $nullable
+     * @return void
+     */
+    protected function setOutputData(string $to, mixed $value, mixed $nullable): void
+    {
+        if ($value || $nullable === 'true') {
+            $this->outputData = data_fill($this->outputData, $to, $value);
+        }
+    }
+
 
 }

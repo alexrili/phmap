@@ -154,4 +154,55 @@ class PayloadMapTest extends TestCase
         $this->assertStringContainsString('I`m a fixed value', $stringfyResponse);
     }
 
+    /** @test */
+    public function b_should_not_contain_nullable_attributes(): void
+    {
+        $inputData = [
+            'a' => [
+                'attribute1' => 'existis and has value',
+            ]
+        ];
+
+        $map = [
+            [
+                'from' => 'a.attribute1',
+                'to' => 'b.attribute1'
+            ],
+            [
+                'from' => 'a.attribute2',
+                'to' => 'b.attribute2',
+            ],
+        ];
+        $response = payload_map($inputData, $map);
+        $this->assertCount(1, $response['b']);
+    }
+
+    /** @test */
+    public function b_should_contain_nullable_attributes(): void
+    {
+        $inputData = [
+            'a' => [
+                'attribute1' => 'existis and has value',
+            ]
+        ];
+
+        $map = [
+            [
+                'from' => 'a.attribute1',
+                'to' => 'b.attribute1'
+            ],
+            [
+                'from' => 'a.attribute2',
+                'to' => 'b.attribute2',
+                'nullable' => 'true',
+            ],
+            [
+                'from' => 'a.attribute3',
+                'to' => 'b.attribute3',
+                'nullable' => 'false',
+            ],
+        ];
+        $response = payload_map($inputData, $map);
+        $this->assertCount(2, $response['b']);
+    }
 }
