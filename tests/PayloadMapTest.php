@@ -293,4 +293,23 @@ class PayloadMapTest extends TestCase
         $this->assertEquals($inputData['a2'][0]['attribute'], $response['b'][0]['newAttribute']);
         $this->assertEquals($inputData['a2'][1]['attribute'], $response['b'][1]['newAttribute']);
     }
+
+    /** @test */
+    public function b_should_be_equal_a(): void
+    {
+        $a = [
+            'attribute1'=>[
+                'attribute2'=>'value',
+            ]
+        ];
+
+        $map = [
+            [
+                'from' => 'attribute1',
+                'to' => 'attribute1',
+            ]
+        ];
+        $b = payload_map($a, $map);
+        $this->assertEquals($b, $a);
+    }
 }

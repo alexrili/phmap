@@ -12,10 +12,11 @@ use Illuminate\Support\Str;
 use Phmap\Phmap\Contracts\InputMap;
 use Phmap\Phmap\Contracts\OutputMap;
 
+
 /**
  * @author '@alexrili'
  * @class PayloadMap
- * @package App\Helpers\Memed
+ * @package Phmap\Phmap
  */
 class PayloadMap
 {
@@ -198,7 +199,7 @@ class PayloadMap
             ...(array)$inputMap,
             'value' => implode($concatValues),
         ];
-        return Response::collection($outputMap, OutputMap::class);
+        return new OutputMap($outputMap);
     }
 
     /**
@@ -224,7 +225,7 @@ class PayloadMap
             ...(array)$inputMap,
             'value' => $value,
         ];
-        return Response::collection($outputMap, OutputMap::class);
+        return new OutputMap($outputMap);
     }
 
     /**
@@ -248,7 +249,7 @@ class PayloadMap
             ...(array)$inputMap,
             'value' => $matches['fixedValue'] ?? null,
         ];
-        return Response::collection($outputMap, OutputMap::class);
+        return new OutputMap($outputMap);
     }
 
     /**
@@ -280,6 +281,5 @@ class PayloadMap
             $this->outputData = data_fill($this->outputData, $to, $value);
         }
     }
-
 
 }
