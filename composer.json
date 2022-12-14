@@ -19,7 +19,7 @@
   "require": {
     "php": ">=8.1",
     "ext-json": "*",
-    "alexrili/vephar": "^1.1",
+    "alexrili/vephar": "^1.1.2",
     "illuminate/support": ">=9"
   },
   "require-dev": {
