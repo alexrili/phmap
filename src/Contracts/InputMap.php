@@ -11,6 +11,7 @@ use Hell\Vephar\Resource;
  */
 class InputMap extends Resource
 {
+    public $goDeeper = false;
     /**
      * @var string
      */

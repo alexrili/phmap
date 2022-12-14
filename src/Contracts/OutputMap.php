@@ -11,6 +11,7 @@ use Hell\Vephar\Resource;
  */
 class OutputMap extends Resource
 {
+    public $goDeeper = false;
     /**
      * @var mixed
      */

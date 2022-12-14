@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 class PayloadMapTest extends TestCase
 {
     /** @test */
-    public function should_return_a_empty_array():void
+    public function should_return_a_empty_array(): void
     {
         $inputData = [];
         $map = [];
@@ -16,7 +16,7 @@ class PayloadMapTest extends TestCase
     }
 
     /** @test */
-    public function should_get_value_from_A_and_put_it_on_B():void
+    public function should_get_value_from_A_and_put_it_on_B(): void
     {
         $inputData = [
             'a' => 'Value from A'
@@ -30,7 +30,7 @@ class PayloadMapTest extends TestCase
     }
 
     /** @test */
-    public function should_get_all_values_from_A_and_put_it_on_B():void
+    public function should_get_all_values_from_A_and_put_it_on_B(): void
     {
         $inputData = [
             ['a' => 'Value from A1'],
@@ -48,7 +48,7 @@ class PayloadMapTest extends TestCase
 
 
     /** @test */
-    public function sould_get_second_value_from_A_and_put_it_on_B():void
+    public function sould_get_second_value_from_A_and_put_it_on_B(): void
     {
         $inputData = [
             ['a' => 'Value from A1'],
@@ -66,7 +66,7 @@ class PayloadMapTest extends TestCase
     }
 
     /** @test */
-    public function sould_get_concatenate_values_from_Aa1_plus_Aa2_and_put_it_on_B():void
+    public function sould_get_concatenate_values_from_Aa1_plus_Aa2_and_put_it_on_B(): void
     {
         $inputData = [
             'a1' => 'Value from A1',
@@ -84,7 +84,7 @@ class PayloadMapTest extends TestCase
     }
 
     /** @test */
-    public function sould_get_fixed_values_and_put_it_on_B():void
+    public function sould_get_fixed_values_and_put_it_on_B(): void
     {
         $map = [
             [
@@ -97,7 +97,7 @@ class PayloadMapTest extends TestCase
     }
 
     /** @test */
-    public function sould_get_values_from_a_nested_attributes_A_array_and__put_it_on_nested_attributes_B_array():void
+    public function sould_get_values_from_a_nested_attributes_A_array_and__put_it_on_nested_attributes_B_array(): void
     {
         $inputData = [
             'a' => [
@@ -126,7 +126,8 @@ class PayloadMapTest extends TestCase
     }
 
     /** @test */
-    public function sould_get_concatenated_fixed_value_direct_and_multilevel_values_from_a_nested_attributes_A_array_and__put_it_on_nested_attributes_B_array():void
+    public function sould_get_concatenated_fixed_value_direct_and_multilevel_values_from_a_nested_attributes_A_array_and__put_it_on_nested_attributes_B_array(
+    ): void
     {
         $inputData = [
             'a' => [
@@ -149,7 +150,7 @@ class PayloadMapTest extends TestCase
         $response = payload_map($inputData, $map);
         $stringfyResponse = json_encode($response);
         $this->assertCount(2, $response['b']);
-        $this->assertStringContainsString('I`m a multilevel value',$stringfyResponse);
+        $this->assertStringContainsString('I`m a multilevel value', $stringfyResponse);
         $this->assertStringContainsString('I`m a directed value', $stringfyResponse);
         $this->assertStringContainsString('I`m a fixed value', $stringfyResponse);
     }
@@ -268,29 +269,48 @@ class PayloadMapTest extends TestCase
     public function should_try_to_get_the_fixed_value_when_not_finds_value_on_multivalue_path(): void
     {
         $inputData = [
-            'a'=>[
-                ['attribute'=>null],
-                ['attribute'=>null],
-                ['attribute'=>'value a.1'],
+            'a' => [
+                ['attribute' => null],
+                ['attribute' => null],
+                ['attribute' => 'value a.1'],
             ],
-            'a2'=>[
-                ['attribute'=>'value a2.1'],
-                ['attribute'=> null],
-                ['attribute'=>'a2test'],
+            'a2' => [
+                ['attribute' => 'value a2.1'],
+                ['attribute' => null],
+                ['attribute' => 'a2test'],
             ],
-            'a1'=> 'value a1.1'
+            'a1' => 'value a1.1'
         ];
 
         $map = [
             [
                 'from' => 'a.*.attribute||a2.*.attribute',
                 'to' => 'b.*.newAttribute',
-                'nullable'=>'true'
+                'nullable' => 'true'
             ]
         ];
         $response = payload_map($inputData, $map);
         $this->assertCount(3, $response['b']);
         $this->assertEquals($inputData['a2'][0]['attribute'], $response['b'][0]['newAttribute']);
         $this->assertEquals($inputData['a2'][1]['attribute'], $response['b'][1]['newAttribute']);
+    }
+
+    /** @test */
+    public function b_should_be_equal_a(): void
+    {
+        $a = [
+            'attribute' => [
+                'nested' => 'value',
+            ]
+        ];
+
+        $map = [
+            [
+                'from' => 'attribute',
+                'to' => 'attribute',
+            ]
+        ];
+        $b = payload_map($a, $map);
+        $this->assertEquals($b, $a);
     }
 }
