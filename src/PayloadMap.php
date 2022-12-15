@@ -6,7 +6,6 @@ namespace Phmap\Phmap;
 
 use Hell\Vephar\Collection;
 use Hell\Vephar\Resource;
-use Hell\Vephar\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Phmap\Phmap\Contracts\InputMap;
@@ -39,7 +38,7 @@ class PayloadMap
      */
     public function __construct(array $inputData, array $map)
     {
-        $this->map = Response::collection($map, InputMap::class);
+        $this->map = response_to_object($map, InputMap::class);
         $this->inputData = $inputData;
     }
 
@@ -53,10 +52,11 @@ class PayloadMap
             $this->handleWithValues($values);
             return;
         }
-        $this->map->each(function (InputMap $map) {
+
+        array_map(function ($map) {
             $values = $this->getValue($map);
             $this->handleWithValues($values);
-        });
+        }, $this->map->toArray());
     }
 
     /**
@@ -85,7 +85,7 @@ class PayloadMap
             ...(array)$inputMap,
             'value' => Arr::get($this->inputData, $inputMap->from),
         ];
-        return Response::collection($data, OutputMap::class);
+        return response_to_object($data, OutputMap::class);
     }
 
     /**
@@ -125,7 +125,7 @@ class PayloadMap
             return $this->getMultiValues($inputMap, $data, ++$indexTo, ++$indexFrom);
         }
 
-        return Response::collection($data, OutputMap::class);
+        return response_to_object($data, OutputMap::class);
     }
 
     /**
@@ -263,10 +263,10 @@ class PayloadMap
             return;
         }
 
-        $outputMap->each(function (OutputMap $map) {
+        foreach ($outputMap->toArray() as $map) {
             $value = $map->value instanceof Resource ? (array)$map->value : $map->value;
             $this->setOutputData($map->to, $value, $map->nullable);
-        });
+        }
     }
 
     /**

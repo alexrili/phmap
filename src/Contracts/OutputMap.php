@@ -11,7 +11,7 @@ use Hell\Vephar\Resource;
  */
 class OutputMap extends Resource
 {
-    public $goDeeper = false;
+    protected $setters = true;
     /**
      * @var mixed
      */
@@ -24,4 +24,29 @@ class OutputMap extends Resource
      * @var string
      */
     public string $nullable;
+
+    /**
+     * @param mixed $value
+     */
+    public function setValue(mixed $value): void
+    {
+        $this->value = $value;
+    }
+
+    /**
+     * @param string $to
+     */
+    public function setTo(string $to): void
+    {
+        $this->to = $to;
+    }
+
+    /**
+     * @param string $nullable
+     */
+    public function setNullable(string $nullable): void
+    {
+        $this->nullable = $nullable;
+    }
+
 }
